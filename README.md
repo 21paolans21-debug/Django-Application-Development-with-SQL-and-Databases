@@ -1,1 +1,0 @@
-# Django-Application-Development-with-SQL-and-Databases
