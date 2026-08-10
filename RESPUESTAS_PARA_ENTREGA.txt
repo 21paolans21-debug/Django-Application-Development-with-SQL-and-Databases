@@ -1,0 +1,750 @@
+TODAS LAS RESPUESTAS — PROYECTO 2
+Django Application Development with SQL and Databases
+Final Project — Add a New Assessment Feature to an Online Course App
+======================================================================
+
+NOMBRE VISIBLE DEL PROYECTO:
+Django Application Development with SQL and Databases
+
+REPOSITORIO GITHUB — 21paolans21-debug:
+https://github.com/21paolans21-debug/Django-Application-Development-with-SQL-and-Databases
+
+REPOSITORIO GITHUB — StevenD15:
+https://github.com/StevenD15/Django-Application-Development-with-SQL-and-Databases
+
+
+======================================================================
+TASK 1 — 3 POINTS
+Submit the GitHub URL of models.py, which includes Question, Choice,
+and Submission models.
+======================================================================
+
+RESPUESTA — 21paolans21-debug:
+https://github.com/21paolans21-debug/Django-Application-Development-with-SQL-and-Databases/blob/main/onlinecourse/models.py
+
+RESPUESTA — StevenD15:
+https://github.com/StevenD15/Django-Application-Development-with-SQL-and-Databases/blob/main/onlinecourse/models.py
+
+CÓDIGO REAL DEL ARCHIVO onlinecourse/models.py:
+
+"""Database models for courses, lessons, enrollment, and assessments."""
+from django.contrib.auth.models import User
+from django.db import models
+from django.utils.timezone import now
+
+
+class Instructor(models.Model):
+    """Additional profile information for a course instructor."""
+
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    full_time = models.BooleanField(default=True)
+    total_learners = models.IntegerField(default=0)
+
+    def __str__(self):
+        return self.user.username
+
+
+class Learner(models.Model):
+    """Learner profile associated with Django's built-in User model."""
+
+    STUDENT = "student"
+    DEVELOPER = "developer"
+    DATA_SCIENTIST = "data_scientist"
+    DATABASE_ADMIN = "dba"
+
+    OCCUPATION_CHOICES = [
+        (STUDENT, "Student"),
+        (DEVELOPER, "Developer"),
+        (DATA_SCIENTIST, "Data Scientist"),
+        (DATABASE_ADMIN, "Database Admin"),
+    ]
+
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    occupation = models.CharField(
+        max_length=20,
+        choices=OCCUPATION_CHOICES,
+        default=STUDENT,
+    )
+
+    def __str__(self):
+        return f"{self.user.username} ({self.get_occupation_display()})"
+
+
+class Course(models.Model):
+    """An online course containing lessons and assessment questions."""
+
+    name = models.CharField(max_length=100, default="Online Course")
+    image = models.ImageField(upload_to="course_images/", blank=True, null=True)
+    description = models.TextField(max_length=1000)
+    pub_date = models.DateField(null=True, blank=True)
+    instructors = models.ManyToManyField(Instructor, blank=True)
+    users = models.ManyToManyField(User, through="Enrollment", related_name="courses")
+    total_enrollment = models.IntegerField(default=0)
+
+    def __str__(self):
+        return self.name
+
+
+class Lesson(models.Model):
+    """A lesson belonging to a course."""
+
+    title = models.CharField(max_length=200, default="Lesson")
+    order = models.PositiveIntegerField(default=0)
+    course = models.ForeignKey(
+        Course,
+        on_delete=models.CASCADE,
+        related_name="lessons",
+    )
+    content = models.TextField()
+
+    class Meta:
+        ordering = ["order", "id"]
+
+    def __str__(self):
+        return self.title
+
+
+class Enrollment(models.Model):
+    """Connects a user to a course."""
+
+    AUDIT = "audit"
+    HONOR = "honor"
+    BETA = "beta"
+    COURSE_MODES = [
+        (AUDIT, "Audit"),
+        (HONOR, "Honor"),
+        (BETA, "Beta"),
+    ]
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    course = models.ForeignKey(Course, on_delete=models.CASCADE)
+    date_enrolled = models.DateField(default=now)
+    mode = models.CharField(max_length=5, choices=COURSE_MODES, default=AUDIT)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user", "course"],
+                name="unique_user_course_enrollment",
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.user.username} - {self.course.name}"
+
+
+class Question(models.Model):
+    """Assessment question attached to a course."""
+
+    course = models.ForeignKey(
+        Course,
+        on_delete=models.CASCADE,
+        related_name="questions",
+    )
+    question_text = models.CharField(max_length=200)
+    question_grade = models.PositiveIntegerField(default=10)
+
+    def __str__(self):
+        return self.question_text
+
+    def is_get_score(self, selected_ids):
+        """Return True only when every correct choice and no wrong choice is selected."""
+        selected_ids = set(selected_ids)
+        correct_ids = set(
+            self.choices.filter(is_correct=True).values_list("id", flat=True)
+        )
+        selected_for_question = set(
+            self.choices.filter(id__in=selected_ids).values_list("id", flat=True)
+        )
+        return bool(correct_ids) and selected_for_question == correct_ids
+
+
+class Choice(models.Model):
+    """A possible answer for a Question."""
+
+    question = models.ForeignKey(
+        Question,
+        on_delete=models.CASCADE,
+        related_name="choices",
+    )
+    choice_text = models.CharField(max_length=200)
+    is_correct = models.BooleanField(default=False)
+
+    def __str__(self):
+        return self.choice_text
+
+
+class Submission(models.Model):
+    """Stores a learner's selected answers for an exam attempt."""
+
+    enrollment = models.ForeignKey(
+        Enrollment,
+        on_delete=models.CASCADE,
+        related_name="submissions",
+    )
+    choices = models.ManyToManyField(Choice, blank=True)
+    submitted_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Submission {self.pk} - {self.enrollment}"
+
+
+======================================================================
+TASK 2 — 3 POINTS
+Submit the GitHub URL of admin.py, which includes the seven imported
+classes and QuestionInline, ChoiceInline, QuestionAdmin, and LessonAdmin.
+======================================================================
+
+RESPUESTA — 21paolans21-debug:
+https://github.com/21paolans21-debug/Django-Application-Development-with-SQL-and-Databases/blob/main/onlinecourse/admin.py
+
+RESPUESTA — StevenD15:
+https://github.com/StevenD15/Django-Application-Development-with-SQL-and-Databases/blob/main/onlinecourse/admin.py
+
+CÓDIGO REAL DEL ARCHIVO onlinecourse/admin.py:
+
+"""Django admin configuration for the OnlineCourse application."""
+from django.contrib import admin
+
+# The assignment explicitly expects seven imported application classes here.
+from .models import Choice, Course, Instructor, Learner, Lesson, Question, Submission
+
+
+class ChoiceInline(admin.TabularInline):
+    """Edit choices directly from a Question admin page."""
+
+    model = Choice
+    extra = 4
+
+
+class QuestionInline(admin.StackedInline):
+    """Edit assessment questions directly from a Course admin page."""
+
+    model = Question
+    extra = 1
+
+
+class LessonInline(admin.StackedInline):
+    model = Lesson
+    extra = 1
+
+
+@admin.register(Question)
+class QuestionAdmin(admin.ModelAdmin):
+    """Question administration with inline choices."""
+
+    inlines = [ChoiceInline]
+    list_display = ("question_text", "course", "question_grade")
+    list_filter = ("course",)
+    search_fields = ("question_text",)
+
+
+@admin.register(Lesson)
+class LessonAdmin(admin.ModelAdmin):
+    """Lesson administration grouped by course."""
+
+    list_display = ("title", "course", "order")
+    list_filter = ("course",)
+    search_fields = ("title", "content")
+
+
+@admin.register(Course)
+class CourseAdmin(admin.ModelAdmin):
+    inlines = [LessonInline, QuestionInline]
+    list_display = ("name", "pub_date", "total_enrollment")
+    search_fields = ("name", "description")
+
+
+@admin.register(Instructor)
+class InstructorAdmin(admin.ModelAdmin):
+    list_display = ("user", "full_time", "total_learners")
+
+
+@admin.register(Learner)
+class LearnerAdmin(admin.ModelAdmin):
+    list_display = ("user", "occupation")
+
+
+admin.site.register(Choice)
+admin.site.register(Submission)
+
+
+======================================================================
+TASK 3 — 1 POINT
+Submit a screenshot of the Django admin site that shows
+Authentication and Authorization and OnlineCourse.
+======================================================================
+
+ARCHIVO A SUBIR:
+03-admin-site.png
+
+URL:
+http://127.0.0.1:8000/admin/
+
+CREDENCIALES:
+Username: admin
+Password: Admin123!
+
+LA CAPTURA DEBE MOSTRAR:
+- Authentication and Authorization
+- OnlineCourse
+- Los modelos del proyecto visibles en Django Admin
+
+
+======================================================================
+TASK 4 — 2 POINTS
+Submit the GitHub URL of course_details_bootstrap.html, which displays
+the course name and all related lessons using Django template tags and
+Bootstrap styling.
+======================================================================
+
+RESPUESTA — 21paolans21-debug:
+https://github.com/21paolans21-debug/Django-Application-Development-with-SQL-and-Databases/blob/main/onlinecourse/templates/onlinecourse/course_details_bootstrap.html
+
+RESPUESTA — StevenD15:
+https://github.com/StevenD15/Django-Application-Development-with-SQL-and-Databases/blob/main/onlinecourse/templates/onlinecourse/course_details_bootstrap.html
+
+CÓDIGO REAL DEL ARCHIVO:
+
+{% extends 'onlinecourse/base_bootstrap.html' %}
+{% block title %}{{ course.name }}{% endblock %}
+{% block content %}
+<!-- Task 4: course detail template using Django template tags and Bootstrap. -->
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-body p-4 p-lg-5">
+        <span class="badge text-bg-primary mb-3">Course</span>
+        <h1 class="display-5 fw-bold">{{ course.name }}</h1>
+        <p class="lead text-secondary">{{ course.description }}</p>
+        <div class="text-muted mb-4">
+            Published: {{ course.pub_date|default:"Not specified" }} ·
+            {{ course.total_enrollment }} learner{{ course.total_enrollment|pluralize }} enrolled
+        </div>
+        {% if is_enrolled %}
+            <a href="{% url 'onlinecourse:exam' course.id %}" class="btn btn-success btn-lg">Take Final Exam</a>
+        {% elif user.is_authenticated %}
+            <form method="post" action="{% url 'onlinecourse:enroll' course.id %}">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-primary btn-lg">Enroll Now</button>
+            </form>
+        {% else %}
+            <a href="{% url 'onlinecourse:login' %}" class="btn btn-primary btn-lg">Login to Enroll</a>
+        {% endif %}
+    </div>
+</div>
+
+<h2 class="fw-bold mb-3">Lessons</h2>
+<div class="accordion shadow-sm" id="lessonAccordion">
+    {% for lesson in course.lessons.all %}
+        <div class="accordion-item">
+            <h2 class="accordion-header" id="lessonHeading{{ lesson.id }}">
+                <button class="accordion-button {% if not forloop.first %}collapsed{% endif %}" type="button"
+                        data-bs-toggle="collapse" data-bs-target="#lesson{{ lesson.id }}">
+                    Lesson {{ lesson.order }}: {{ lesson.title }}
+                </button>
+            </h2>
+            <div id="lesson{{ lesson.id }}" class="accordion-collapse collapse {% if forloop.first %}show{% endif %}"
+                 data-bs-parent="#lessonAccordion">
+                <div class="accordion-body">{{ lesson.content|linebreaks }}</div>
+            </div>
+        </div>
+    {% empty %}
+        <div class="alert alert-secondary mb-0">No lessons have been added to this course yet.</div>
+    {% endfor %}
+</div>
+{% endblock %}
+
+
+======================================================================
+TASK 5 — 2 POINTS
+Submit the GitHub URL of views.py, which includes the submit and
+show_exam_result functions.
+======================================================================
+
+RESPUESTA — 21paolans21-debug:
+https://github.com/21paolans21-debug/Django-Application-Development-with-SQL-and-Databases/blob/main/onlinecourse/views.py
+
+RESPUESTA — StevenD15:
+https://github.com/StevenD15/Django-Application-Development-with-SQL-and-Databases/blob/main/onlinecourse/views.py
+
+CÓDIGO REAL DEL ARCHIVO:
+
+"""Views for authentication, courses, enrollment, exams, and grading."""
+from django.contrib import messages
+from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import User
+from django.http import HttpResponseBadRequest, HttpResponseRedirect
+from django.shortcuts import get_object_or_404, render
+from django.urls import reverse
+
+from .models import Choice, Course, Enrollment, Learner, Submission
+
+PASSMARK = 80
+
+
+def registration_request(request):
+    """Create a learner account and sign the new user in."""
+    if request.method == "GET":
+        return render(request, "onlinecourse/user_registration_bootstrap.html")
+
+    username = request.POST.get("username", "").strip()
+    password = request.POST.get("psw", "")
+    first_name = request.POST.get("firstname", "").strip()
+    last_name = request.POST.get("lastname", "").strip()
+
+    if not username or not password:
+        return render(
+            request,
+            "onlinecourse/user_registration_bootstrap.html",
+            {"message": "Username and password are required."},
+        )
+
+    if User.objects.filter(username=username).exists():
+        return render(
+            request,
+            "onlinecourse/user_registration_bootstrap.html",
+            {"message": "User already exists."},
+        )
+
+    user = User.objects.create_user(
+        username=username,
+        password=password,
+        first_name=first_name,
+        last_name=last_name,
+    )
+    Learner.objects.create(user=user)
+    login(request, user)
+    return HttpResponseRedirect(reverse("onlinecourse:index"))
+
+
+def login_request(request):
+    """Authenticate an existing user."""
+    if request.method == "GET":
+        return render(request, "onlinecourse/user_login_bootstrap.html")
+
+    user = authenticate(
+        username=request.POST.get("username", ""),
+        password=request.POST.get("psw", ""),
+    )
+    if user is not None:
+        login(request, user)
+        return HttpResponseRedirect(reverse("onlinecourse:index"))
+
+    return render(
+        request,
+        "onlinecourse/user_login_bootstrap.html",
+        {"message": "Invalid username or password."},
+    )
+
+
+def logout_request(request):
+    logout(request)
+    return HttpResponseRedirect(reverse("onlinecourse:index"))
+
+
+def course_list(request):
+    """Display available courses."""
+    courses = Course.objects.order_by("-total_enrollment", "name")
+    enrolled_course_ids = set()
+    if request.user.is_authenticated:
+        enrolled_course_ids = set(
+            Enrollment.objects.filter(user=request.user).values_list(
+                "course_id", flat=True
+            )
+        )
+    return render(
+        request,
+        "onlinecourse/course_list_bootstrap.html",
+        {"courses": courses, "enrolled_course_ids": enrolled_course_ids},
+    )
+
+
+def course_details(request, course_id):
+    """Display the course name, description, lessons, and assessment action."""
+    course = get_object_or_404(Course, pk=course_id)
+    is_enrolled = (
+        request.user.is_authenticated
+        and Enrollment.objects.filter(user=request.user, course=course).exists()
+    )
+    return render(
+        request,
+        "onlinecourse/course_details_bootstrap.html",
+        {"course": course, "is_enrolled": is_enrolled},
+    )
+
+
+@login_required
+def enroll(request, course_id):
+    """Enroll the current user in a course."""
+    course = get_object_or_404(Course, pk=course_id)
+    _, created = Enrollment.objects.get_or_create(user=request.user, course=course)
+    if created:
+        course.total_enrollment += 1
+        course.save(update_fields=["total_enrollment"])
+        messages.success(request, "Enrollment completed.")
+    return HttpResponseRedirect(
+        reverse("onlinecourse:course_details", args=[course.id])
+    )
+
+
+@login_required
+def take_exam(request, course_id):
+    """Render the course assessment for an enrolled learner."""
+    course = get_object_or_404(Course, pk=course_id)
+    get_object_or_404(Enrollment, user=request.user, course=course)
+    questions = course.questions.prefetch_related("choices").all()
+    return render(
+        request,
+        "onlinecourse/exam_bootstrap.html",
+        {"course": course, "questions": questions},
+    )
+
+
+def extract_answers(request):
+    """Collect submitted checkbox values named choice_<choice_id>."""
+    selected = []
+    for key in request.POST:
+        if key.startswith("choice_"):
+            try:
+                selected.append(int(key.removeprefix("choice_")))
+            except ValueError:
+                continue
+    return selected
+
+
+@login_required
+def submit(request, course_id):
+    """Persist a learner's exam choices and redirect to the result view."""
+    if request.method != "POST":
+        return HttpResponseBadRequest("Exam submissions must use POST.")
+
+    course = get_object_or_404(Course, pk=course_id)
+    enrollment = get_object_or_404(
+        Enrollment,
+        user=request.user,
+        course=course,
+    )
+    selected_choice_ids = extract_answers(request)
+
+    submission = Submission.objects.create(enrollment=enrollment)
+    valid_choices = Choice.objects.filter(
+        id__in=selected_choice_ids,
+        question__course=course,
+    )
+    submission.choices.set(valid_choices)
+
+    return HttpResponseRedirect(
+        reverse(
+            "onlinecourse:show_exam_result",
+            args=[course.id, submission.id],
+        )
+    )
+
+
+@login_required
+def show_exam_result(request, course_id, submission_id):
+    """Calculate the score and display detailed exam results."""
+    course = get_object_or_404(Course, pk=course_id)
+    submission = get_object_or_404(
+        Submission.objects.select_related("enrollment"),
+        pk=submission_id,
+        enrollment__user=request.user,
+        enrollment__course=course,
+    )
+
+    selected_choice_ids = set(
+        submission.choices.values_list("id", flat=True)
+    )
+    questions = list(course.questions.prefetch_related("choices").all())
+
+    total_grade = sum(question.question_grade for question in questions)
+    grade = sum(
+        question.question_grade
+        for question in questions
+        if question.is_get_score(selected_choice_ids)
+    )
+    score = round((grade / total_grade) * 100) if total_grade else 0
+    passed = score >= PASSMARK
+
+    return render(
+        request,
+        "onlinecourse/exam_result_bootstrap.html",
+        {
+            "course": course,
+            "submission": submission,
+            "questions": questions,
+            "selected_choice_ids": selected_choice_ids,
+            "grade": grade,
+            "total_grade": total_grade,
+            "score": score,
+            "passed": passed,
+            "passmark": PASSMARK,
+        },
+    )
+
+
+======================================================================
+TASK 6 — 2 POINTS
+Submit the GitHub URL of urls.py, which includes the paths for submit
+and show_exam_result.
+======================================================================
+
+RESPUESTA — 21paolans21-debug:
+https://github.com/21paolans21-debug/Django-Application-Development-with-SQL-and-Databases/blob/main/onlinecourse/urls.py
+
+RESPUESTA — StevenD15:
+https://github.com/StevenD15/Django-Application-Development-with-SQL-and-Databases/blob/main/onlinecourse/urls.py
+
+CÓDIGO REAL DEL ARCHIVO:
+
+"""URL routes for the OnlineCourse application."""
+from django.urls import path
+
+from . import views
+
+app_name = "onlinecourse"
+
+urlpatterns = [
+    path("", views.course_list, name="index"),
+    path("registration/", views.registration_request, name="registration"),
+    path("login/", views.login_request, name="login"),
+    path("logout/", views.logout_request, name="logout"),
+    path("<int:course_id>/", views.course_details, name="course_details"),
+    path("<int:course_id>/enroll/", views.enroll, name="enroll"),
+    path("<int:course_id>/exam/", views.take_exam, name="exam"),
+    # Task 6: required assessment paths.
+    path("<int:course_id>/submit/", views.submit, name="submit"),
+    path(
+        "<int:course_id>/submission/<int:submission_id>/result/",
+        views.show_exam_result,
+        name="show_exam_result",
+    ),
+]
+
+
+======================================================================
+TASK 7 — 2 POINTS
+Submit a screenshot showing the mock exam result for a successful
+attempt, including Congratulations!, the score, and Exam Results.
+======================================================================
+
+ARCHIVO A SUBIR:
+07-final.png
+
+USUARIO:
+student
+
+PASSWORD:
+Student123!
+
+URL:
+http://127.0.0.1:8000/onlinecourse/
+
+LA CAPTURA DEBE MOSTRAR:
+- Congratulations!
+- El score de la evaluación
+- Exam Results
+- Las respuestas/correcciones del examen
+
+PLANTILLA REAL DEL RESULTADO:
+
+{% extends 'onlinecourse/base_bootstrap.html' %}
+{% block title %}Exam Results - {{ course.name }}{% endblock %}
+{% block content %}
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-body p-4 p-lg-5">
+        {% if passed %}
+            <div class="alert alert-success border-0">
+                <h1 class="alert-heading fw-bold">Congratulations!</h1>
+                <p class="lead mb-2">You passed the exam.</p>
+                <div class="display-4 fw-bold">{{ score }}%</div>
+                <p class="mb-0">Score: {{ grade }} / {{ total_grade }} points</p>
+            </div>
+        {% else %}
+            <div class="alert alert-warning border-0">
+                <h1 class="alert-heading fw-bold">Keep learning!</h1>
+                <p class="lead">Your score is {{ score }}%. You need {{ passmark }}% to pass.</p>
+                <p class="mb-0">Score: {{ grade }} / {{ total_grade }} points</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<h2 class="fw-bold mb-3">Exam Results</h2>
+{% for question in questions %}
+    <div class="card shadow-sm mb-3">
+        <div class="card-header fw-semibold">{{ forloop.counter }}. {{ question.question_text }}</div>
+        <ul class="list-group list-group-flush">
+            {% for choice in question.choices.all %}
+                <li class="list-group-item d-flex justify-content-between align-items-center
+                    {% if choice.id in selected_choice_ids and choice.is_correct %}list-group-item-success
+                    {% elif choice.id in selected_choice_ids and not choice.is_correct %}list-group-item-danger
+                    {% elif choice.is_correct %}list-group-item-info{% endif %}">
+                    <span>
+                        {{ choice.choice_text }}
+                        {% if choice.id in selected_choice_ids %}<strong> — selected</strong>{% endif %}
+                    </span>
+                    {% if choice.is_correct %}<span class="badge text-bg-success">Correct</span>{% endif %}
+                </li>
+            {% endfor %}
+        </ul>
+    </div>
+{% endfor %}
+<a class="btn btn-primary mt-3" href="{% url 'onlinecourse:course_details' course.id %}">Back to Course</a>
+{% endblock %}
+
+
+======================================================================
+COMANDOS PARA PREPARAR EL PROYECTO
+======================================================================
+
+WINDOWS:
+
+python -m venv .venv
+.venv\Scripts\activate
+pip install -r requirements.txt
+python manage.py makemigrations onlinecourse
+python manage.py migrate
+python manage.py seed_demo
+python manage.py runserver
+
+
+MAC / LINUX:
+
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+python manage.py makemigrations onlinecourse
+python manage.py migrate
+python manage.py seed_demo
+python manage.py runserver
+
+
+======================================================================
+RESUMEN DE RESPUESTAS
+======================================================================
+
+TASK 1:
+onlinecourse/models.py
+
+TASK 2:
+onlinecourse/admin.py
+
+TASK 3:
+03-admin-site.png
+
+TASK 4:
+onlinecourse/templates/onlinecourse/course_details_bootstrap.html
+
+TASK 5:
+onlinecourse/views.py
+
+TASK 6:
+onlinecourse/urls.py
+
+TASK 7:
+07-final.png
+
+======================================================================
+FIN
+======================================================================

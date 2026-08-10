@@ -1,0 +1,44 @@
+{% extends 'onlinecourse/base_bootstrap.html' %}
+{% block title %}Exam Results - {{ course.name }}{% endblock %}
+{% block content %}
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-body p-4 p-lg-5">
+        {% if passed %}
+            <div class="alert alert-success border-0">
+                <h1 class="alert-heading fw-bold">Congratulations!</h1>
+                <p class="lead mb-2">You passed the exam.</p>
+                <div class="display-4 fw-bold">{{ score }}%</div>
+                <p class="mb-0">Score: {{ grade }} / {{ total_grade }} points</p>
+            </div>
+        {% else %}
+            <div class="alert alert-warning border-0">
+                <h1 class="alert-heading fw-bold">Keep learning!</h1>
+                <p class="lead">Your score is {{ score }}%. You need {{ passmark }}% to pass.</p>
+                <p class="mb-0">Score: {{ grade }} / {{ total_grade }} points</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<h2 class="fw-bold mb-3">Exam Results</h2>
+{% for question in questions %}
+    <div class="card shadow-sm mb-3">
+        <div class="card-header fw-semibold">{{ forloop.counter }}. {{ question.question_text }}</div>
+        <ul class="list-group list-group-flush">
+            {% for choice in question.choices.all %}
+                <li class="list-group-item d-flex justify-content-between align-items-center
+                    {% if choice.id in selected_choice_ids and choice.is_correct %}list-group-item-success
+                    {% elif choice.id in selected_choice_ids and not choice.is_correct %}list-group-item-danger
+                    {% elif choice.is_correct %}list-group-item-info{% endif %}">
+                    <span>
+                        {{ choice.choice_text }}
+                        {% if choice.id in selected_choice_ids %}<strong> — selected</strong>{% endif %}
+                    </span>
+                    {% if choice.is_correct %}<span class="badge text-bg-success">Correct</span>{% endif %}
+                </li>
+            {% endfor %}
+        </ul>
+    </div>
+{% endfor %}
+<a class="btn btn-primary mt-3" href="{% url 'onlinecourse:course_details' course.id %}">Back to Course</a>
+{% endblock %}

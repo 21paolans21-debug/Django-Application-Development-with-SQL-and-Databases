@@ -1,0 +1,17 @@
+{% extends 'onlinecourse/base_bootstrap.html' %}
+{% block title %}Register{% endblock %}
+{% block content %}
+<div class="row justify-content-center"><div class="col-md-7 col-lg-6">
+<div class="card shadow-sm"><div class="card-body p-4">
+<h1 class="h3 mb-3">Create learner account</h1>
+{% if message %}<div class="alert alert-danger">{{ message }}</div>{% endif %}
+<form method="post">{% csrf_token %}
+<div class="row g-3">
+<div class="col-md-6"><label class="form-label">First name</label><input class="form-control" name="firstname"></div>
+<div class="col-md-6"><label class="form-label">Last name</label><input class="form-control" name="lastname"></div>
+<div class="col-12"><label class="form-label">Username</label><input class="form-control" name="username" required></div>
+<div class="col-12"><label class="form-label">Password</label><input class="form-control" type="password" name="psw" required></div>
+<div class="col-12"><button class="btn btn-primary w-100" type="submit">Register</button></div>
+</div></form>
+</div></div></div></div>
+{% endblock %}

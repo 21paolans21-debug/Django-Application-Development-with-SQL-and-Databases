@@ -1,0 +1,14 @@
+{% extends 'onlinecourse/base_bootstrap.html' %}
+{% block title %}Login{% endblock %}
+{% block content %}
+<div class="row justify-content-center"><div class="col-md-6 col-lg-5">
+<div class="card shadow-sm"><div class="card-body p-4">
+<h1 class="h3 mb-3">Login</h1>
+{% if message %}<div class="alert alert-danger">{{ message }}</div>{% endif %}
+<form method="post">{% csrf_token %}
+<div class="mb-3"><label class="form-label">Username</label><input class="form-control" name="username" required></div>
+<div class="mb-3"><label class="form-label">Password</label><input class="form-control" type="password" name="psw" required></div>
+<button class="btn btn-primary w-100" type="submit">Login</button>
+</form>
+</div></div></div></div>
+{% endblock %}

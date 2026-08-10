@@ -1,0 +1,46 @@
+{% extends 'onlinecourse/base_bootstrap.html' %}
+{% block title %}{{ course.name }}{% endblock %}
+{% block content %}
+<!-- Task 4: course detail template using Django template tags and Bootstrap. -->
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-body p-4 p-lg-5">
+        <span class="badge text-bg-primary mb-3">Course</span>
+        <h1 class="display-5 fw-bold">{{ course.name }}</h1>
+        <p class="lead text-secondary">{{ course.description }}</p>
+        <div class="text-muted mb-4">
+            Published: {{ course.pub_date|default:"Not specified" }} ·
+            {{ course.total_enrollment }} learner{{ course.total_enrollment|pluralize }} enrolled
+        </div>
+        {% if is_enrolled %}
+            <a href="{% url 'onlinecourse:exam' course.id %}" class="btn btn-success btn-lg">Take Final Exam</a>
+        {% elif user.is_authenticated %}
+            <form method="post" action="{% url 'onlinecourse:enroll' course.id %}">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-primary btn-lg">Enroll Now</button>
+            </form>
+        {% else %}
+            <a href="{% url 'onlinecourse:login' %}" class="btn btn-primary btn-lg">Login to Enroll</a>
+        {% endif %}
+    </div>
+</div>
+
+<h2 class="fw-bold mb-3">Lessons</h2>
+<div class="accordion shadow-sm" id="lessonAccordion">
+    {% for lesson in course.lessons.all %}
+        <div class="accordion-item">
+            <h2 class="accordion-header" id="lessonHeading{{ lesson.id }}">
+                <button class="accordion-button {% if not forloop.first %}collapsed{% endif %}" type="button"
+                        data-bs-toggle="collapse" data-bs-target="#lesson{{ lesson.id }}">
+                    Lesson {{ lesson.order }}: {{ lesson.title }}
+                </button>
+            </h2>
+            <div id="lesson{{ lesson.id }}" class="accordion-collapse collapse {% if forloop.first %}show{% endif %}"
+                 data-bs-parent="#lessonAccordion">
+                <div class="accordion-body">{{ lesson.content|linebreaks }}</div>
+            </div>
+        </div>
+    {% empty %}
+        <div class="alert alert-secondary mb-0">No lessons have been added to this course yet.</div>
+    {% endfor %}
+</div>
+{% endblock %}

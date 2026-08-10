@@ -1,0 +1,35 @@
+{% extends 'onlinecourse/base_bootstrap.html' %}
+{% block title %}Final Exam - {{ course.name }}{% endblock %}
+{% block content %}
+<div class="mb-4">
+    <span class="badge text-bg-warning mb-2">Assessment</span>
+    <h1 class="fw-bold">{{ course.name }} — Final Exam</h1>
+    <p class="text-muted">Select all answers that apply. A question earns points only when all correct choices and no incorrect choices are selected.</p>
+</div>
+<form method="post" action="{% url 'onlinecourse:submit' course.id %}">
+    {% csrf_token %}
+    {% for question in questions %}
+        <div class="card shadow-sm mb-4">
+            <div class="card-body p-4">
+                <div class="d-flex justify-content-between gap-3">
+                    <h5 class="card-title">{{ forloop.counter }}. {{ question.question_text }}</h5>
+                    <span class="badge text-bg-secondary">{{ question.question_grade }} pts</span>
+                </div>
+                {% for choice in question.choices.all %}
+                    <div class="form-check my-2">
+                        <input class="form-check-input" type="checkbox" name="choice_{{ choice.id }}" id="choice{{ choice.id }}">
+                        <label class="form-check-label" for="choice{{ choice.id }}">{{ choice.choice_text }}</label>
+                    </div>
+                {% empty %}
+                    <p class="text-muted">No answer choices configured.</p>
+                {% endfor %}
+            </div>
+        </div>
+    {% empty %}
+        <div class="alert alert-warning">This course does not have exam questions yet.</div>
+    {% endfor %}
+    {% if questions %}
+        <button type="submit" class="btn btn-primary btn-lg">Submit Exam</button>
+    {% endif %}
+</form>
+{% endblock %}
